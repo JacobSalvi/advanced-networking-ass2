@@ -1,4 +1,5 @@
 import argparse
+import math
 from pathlib import Path
 from typing import List, Dict, Optional
 import ipaddress
@@ -229,6 +230,43 @@ class NetworkDefinition:
             switch_id += 1
         return
 
+    def _find_shortest_paths(self):
+        for router in self._routers:
+            self._dijkstra(router)
+
+    @staticmethod
+    def _find_vertex_with_smallest_distance(Q, router_to_dist: Dict[RouterDefinition, float]) -> RouterDefinition:
+        dist_to_router = {dist: router for router, dist in router_to_dist.items() if router in Q}
+        min_dist = min(dist_to_router.keys())
+        return dist_to_router[min_dist]
+
+    def _dijkstra(self, source_router: RouterDefinition):
+        # Dijkstra as seen on wikipedia https://en.wikipedia.org/wiki/Dijkstra's_algorithm
+        router_to_dist: Dict[RouterDefinition, float] = {}
+        router_to_prev: Dict[RouterDefinition, Optional[RouterDefinition]] = {}
+        Q: List[RouterDefinition] = [router for router in self._routers if router]
+        for router in self._routers:
+            router_to_dist[router] = math.inf
+            router_to_prev[router] = None
+        router_to_dist[source_router] = 0
+        while len(Q) > 0:
+            u = self._find_vertex_with_smallest_distance(Q, router_to_dist)
+            Q = [r for r in Q if r != u]
+
+            # find neighbours of u still in Q
+            connections = [c for c in u.connections()
+                           if (c.node1() != u and c.node1() in Q) or (c.node2() != u and c.node2() in Q)]
+            for conn in connections:
+                alt = router_to_dist[u] + conn.cost()
+                v = conn.node1() if conn.node1() != u else conn.node2()
+                if alt < router_to_dist[v]:
+                    router_to_dist[v] = alt
+                    router_to_prev[v] = u
+        return router_to_dist, router_to_prev
+
+    def set_up_emulation(self):
+        self._find_shortest_paths()
+
     @staticmethod
     def get_subnet(ip: str, netmask: str):
         network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
@@ -288,6 +326,7 @@ def main():
     validate_definition_file(definition_file=definition_file)
     network_specification: dict = read_definition(definition_file=definition_file)
     network_definition: NetworkDefinition = NetworkDefinition(network_definition=network_specification)
+    network_definition.set_up_emulation()
     if should_draw:
         network_definition.output_graph_representation()
     return
