@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import math
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -154,6 +155,12 @@ class SwitchDefinition:
         return self._name
 
 
+@dataclasses.dataclass
+class ShortestPath:
+    router_to_dist: Dict[RouterDefinition, float]
+    router_to_prev: Dict[RouterDefinition, Optional[RouterDefinition]]
+
+
 class NetworkDefinition:
     def __init__(self, network_definition: dict) -> None:
         self._routers: List[RouterDefinition] = NetworkDefinition._get_routers_definition(definition=network_definition)
@@ -231,8 +238,11 @@ class NetworkDefinition:
         return
 
     def _find_shortest_paths(self):
+        router_to_paths: Dict[RouterDefinition, ShortestPath] = {}
         for router in self._routers:
-            self._dijkstra(router)
+            router_to_dist, router_to_prev = self._dijkstra(router)
+            router_to_paths[router] = ShortestPath(router_to_dist=router_to_dist, router_to_prev=router_to_prev)
+        return router_to_paths
 
     @staticmethod
     def _find_vertex_with_smallest_distance(Q, router_to_dist: Dict[RouterDefinition, float]) -> RouterDefinition:
@@ -265,7 +275,8 @@ class NetworkDefinition:
         return router_to_dist, router_to_prev
 
     def set_up_emulation(self):
-        self._find_shortest_paths()
+        router_to_path: Dict[RouterDefinition, ShortestPath] = self._find_shortest_paths()
+        return
 
     @staticmethod
     def get_subnet(ip: str, netmask: str):
