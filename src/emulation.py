@@ -320,13 +320,13 @@ class NetworkDefinition:
                                                             interface1=interface,
                                                             interface2=host_interface,
                                                             cost=interface.cost())
-                    else:
-                        switch = host.switch()
-                        switch_interface: BaseInterface = switch.interface()
-                        self._attempt_connecting_interfaces(node1=router, node2=switch,
-                                                            interface1=interface,
-                                                            interface2=switch_interface,
-                                                            cost=interface.cost())
+                # connect switches to routers
+                for switch in self._switches:
+                    switch_interface: BaseInterface = switch.interface()
+                    self._attempt_connecting_interfaces(node1=router, node2=switch,
+                                                        interface1=interface,
+                                                        interface2=switch_interface,
+                                                        cost=interface.cost())
         return
 
     def create_switches(self):
