@@ -6,6 +6,10 @@ from typing import List, Dict, Optional
 import ipaddress
 from collections import defaultdict
 import yaml
+from mininet.cli import CLI
+from mininet.net import Mininet
+from mininet.node import Node
+from mininet.topo import Topo
 
 
 def validate_definition_file(definition_file: Path):
@@ -39,6 +43,13 @@ class BaseInterface:
     def node_name(self):
         return self._node.name()
 
+    def name(self):
+        return self._name
+
+    def full_address(self):
+        network = ipaddress.IPv4Network(f"{self._address}/{self._mask}", strict=False)
+        return str(network)
+
 
 class RouterInterface(BaseInterface):
     def __init__(self, name: str, address: str, mask: str, node, cost: int = 1):
@@ -51,6 +62,7 @@ class RouterInterface(BaseInterface):
 
 class Connection:
     def __init__(self, node1, node2, interface1: BaseInterface, interface2: BaseInterface, cost: int):
+        # TODO: make this a dataclass
         self._node1 = node1
         self._node2 = node2
         self._interface1 = interface1
@@ -65,6 +77,12 @@ class Connection:
 
     def cost(self) -> int:
         return self._cost
+
+    def interface1(self):
+        return self._interface1
+
+    def interface2(self):
+        return self._interface2
 
 
 class RouterDefinition:
@@ -159,6 +177,54 @@ class SwitchDefinition:
 class ShortestPath:
     router_to_dist: Dict[RouterDefinition, float]
     router_to_prev: Dict[RouterDefinition, Optional[RouterDefinition]]
+
+
+class LinuxRouter(Node):
+    def config(self, **params):
+        super().config(**params)
+        self.cmd("sysctl net.ipv4.ip_forward=1")
+
+    def terminate(self):
+        self.cmd("sysctl net.ipv4.ip_forward=0")
+        super().terminate()
+
+
+class NetworkTopology(Topo):
+    def __init__(self, routers: List[RouterDefinition],  hosts: List[HostDefinition],
+                 switches: List[SwitchDefinition], paths: Dict[RouterDefinition, ShortestPath]):
+        self._routers = routers
+        self._hosts = hosts
+        self._switches = switches
+        self._paths = paths
+        super().__init__()
+
+    def _create_routers(self):
+        for router in self._routers:
+            self.addNode(router.name(), cls=LinuxRouter, ip=None)
+        connections = [c for router in self._routers for c in router.connections()]
+        connections = [c for c in connections
+                       if type(c.node1()) is RouterDefinition and type(c.node2()) is RouterDefinition]
+        for c in connections:
+            router1 = c.node1()
+            router2 = c.node2()
+            interface1 = c.interface1()
+            interface2 = c.interface2()
+            self.addLink(router1.name(), router2.name(),
+                         intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
+                         intfName2=f"{router1.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
+            pass
+
+    def _create_hosts(self):
+        for host in self._hosts:
+            self.addHost(host.name(), ip=None)
+
+    def set_routing_tables(self):
+        pass
+
+    def build(self, **_ops):
+        self._create_routers()
+        self._create_hosts()
+        self.set_routing_tables()
 
 
 class NetworkDefinition:
@@ -276,6 +342,14 @@ class NetworkDefinition:
 
     def set_up_emulation(self):
         router_to_path: Dict[RouterDefinition, ShortestPath] = self._find_shortest_paths()
+        topology = NetworkTopology(routers=self._routers,
+                                   hosts=self._hosts,
+                                   switches=self._switches,
+                                   paths=router_to_path)
+        net = Mininet(topo=topology, controller=None)
+        net.start()
+        CLI(net)
+        net.stop()
         return
 
     @staticmethod
