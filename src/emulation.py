@@ -204,6 +204,7 @@ class NetworkTopology(Topo):
         connections = [c for router in self._routers for c in router.connections()]
         connections = [c for c in connections
                        if type(c.node1()) is RouterDefinition and type(c.node2()) is RouterDefinition]
+        connections = set(connections)
         for c in connections:
             router1 = c.node1()
             router2 = c.node2()
