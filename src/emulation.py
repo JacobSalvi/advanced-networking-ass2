@@ -49,7 +49,7 @@ class BaseInterface:
 
     def full_address(self):
         network = ipaddress.IPv4Network(f"{self._address}/{self._mask}", strict=False)
-        return str(network)
+        return f"{self._address}/{network.prefixlen}"
 
 
 class RouterInterface(BaseInterface):
