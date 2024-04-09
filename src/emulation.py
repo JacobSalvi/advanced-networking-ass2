@@ -211,7 +211,7 @@ class NetworkTopology(Topo):
             interface2 = c.interface2()
             self.addLink(router1.name(), router2.name(),
                          intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
-                         intfName2=f"{router1.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
+                         intfName2=f"{router2.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
             pass
 
     def _create_hosts(self):
