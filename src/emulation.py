@@ -210,6 +210,9 @@ class NetworkTopology(Topo):
             router2 = c.node2()
             interface1 = c.interface1()
             interface2 = c.interface2()
+            print("Adding link router")
+            print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
+            print(f"{router2.name()}-{interface2.name()} {interface2.full_address()}")
             self.addLink(router1.name(), router2.name(),
                          intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
                          intfName2=f"{router2.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
