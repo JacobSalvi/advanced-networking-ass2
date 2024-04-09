@@ -173,6 +173,9 @@ class SwitchDefinition:
     def name(self) -> str:
         return self._name
 
+    def hosts(self):
+        return self._hosts
+
 
 @dataclasses.dataclass
 class ShortestPath:
@@ -214,13 +217,26 @@ class NetworkTopology(Topo):
             print("Adding link router")
             print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
             print(f"{router2.name()}-{interface2.name()} {interface2.full_address()}")
+            # EXTREMELY IMPORTANT: intfName1 and intfName2 must be unique
+            # I wasted 2 hours to find this bug
             intfname1 = f"{router1.name()}-{router2.name()}-{interface1.name()}-{interface2.name()}"
             intfname2 = f"{router2.name()}-{router1.name()}-{interface2.name()}-{interface1.name()}"
             self.addLink(router1.name(), router2.name(),
                          cls=TCLink,
                          intfName1=intfname1, params1={"ip": interface1.full_address()},
                          intfName2=intfname2, params2={"ip": interface2.full_address()})
-            pass
+        return
+
+    def _create_switches(self):
+        for switch in self._switches:
+            sw = self.addSwitch(switch.name())
+            for host in switch.hosts():
+                self.addLink(switch.name(), host.name())
+        connections = [c for router in self._routers for c in router.connections()]
+        connections = [c for c in connections
+                       if type(c.node1()) is SwitchDefinition or type(c.node2()) is SwitchDefinition]
+        connections = set(connections)
+        return
 
     def _create_hosts(self):
         for host in self._hosts:
@@ -232,6 +248,7 @@ class NetworkTopology(Topo):
     def build(self, **_ops):
         self._create_routers()
         self._create_hosts()
+        self._create_switches()
         self.set_routing_tables()
 
 
