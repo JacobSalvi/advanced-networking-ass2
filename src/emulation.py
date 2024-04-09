@@ -206,19 +206,20 @@ class NetworkTopology(Topo):
         connections = [c for c in connections
                        if type(c.node1()) is RouterDefinition and type(c.node2()) is RouterDefinition]
         connections = set(connections)
-        for c in connections:
-            router1 = c.node1()
-            router2 = c.node2()
-            interface1 = c.interface1()
-            interface2 = c.interface2()
-            print("Adding link router")
-            print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
-            print(f"{router2.name()}-{interface2.name()} {interface2.full_address()}")
-            self.addLink(router1.name(), router2.name(),
-                         cls=TCLink,
-                         intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
-                         intfName2=f"{router2.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
-            pass
+        self.addLink("r1", "r2")
+        # for c in connections:
+        #     router1 = c.node1()
+        #     router2 = c.node2()
+        #     interface1 = c.interface1()
+        #     interface2 = c.interface2()
+        #     print("Adding link router")
+        #     print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
+        #     print(f"{router2.name()}-{interface2.name()} {interface2.full_address()}")
+        #     self.addLink(router1.name(), router2.name(),
+        #                  cls=TCLink,
+        #                  intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
+        #                  intfName2=f"{router2.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
+        #     pass
 
     def _create_hosts(self):
         for host in self._hosts:
