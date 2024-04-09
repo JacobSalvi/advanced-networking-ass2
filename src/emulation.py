@@ -186,7 +186,7 @@ class LinuxRouter(Node):
 
     def terminate(self):
         self.cmd("sysctl net.ipv4.ip_forward=0")
-        super().terminate()
+        super(LinuxRouter, self).terminate()
 
 
 class NetworkTopology(Topo):
@@ -196,7 +196,7 @@ class NetworkTopology(Topo):
         self._hosts = hosts
         self._switches = switches
         self._paths = paths
-        super().__init__()
+        Topo.__init__(self)
 
     def _create_routers(self):
         for router in self._routers:
