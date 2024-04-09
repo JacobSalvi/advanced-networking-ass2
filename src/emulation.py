@@ -7,6 +7,7 @@ import ipaddress
 from collections import defaultdict
 import yaml
 from mininet.cli import CLI
+from mininet.link import TCLink
 from mininet.net import Mininet
 from mininet.node import Node
 from mininet.topo import Topo
@@ -214,6 +215,7 @@ class NetworkTopology(Topo):
             print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
             print(f"{router2.name()}-{interface2.name()} {interface2.full_address()}")
             self.addLink(router1.name(), router2.name(),
+                         cls=TCLink,
                          intfName1=f"{router1.name()}-{interface1.name()}", params1={"ip": interface1.full_address()},
                          intfName2=f"{router2.name()}-{interface1.name()}", params2={"ip": interface2.full_address()})
             pass
