@@ -180,7 +180,7 @@ class SwitchDefinition:
 @dataclasses.dataclass
 class ShortestPath:
     router_to_dist: Dict[RouterDefinition, float]
-    router_to_prev: Dict[RouterDefinition, Optional[RouterDefinition]]
+    router_to_prev: Dict[RouterDefinition, Optional[Connection]]
 
 
 class LinuxRouter(Node):
@@ -241,7 +241,7 @@ class NetworkTopology(Topo):
             switch = c.node2()
             interface1 = c.interface1()
             interface2 = c.interface2()
-            print("Adding link router")
+            print("Adding link router to switch")
             print(f"{router1.name()}-{interface1.name()} {interface1.full_address()}")
             print(f"{switch.name()}-{interface2.name()} {interface2.full_address()}")
             # EXTREMELY IMPORTANT: intfName1 and intfName2 must be unique
@@ -258,14 +258,11 @@ class NetworkTopology(Topo):
         for host in self._hosts:
             self.addHost(host.name(), ip=None)
 
-    def set_routing_tables(self):
-        pass
-
     def build(self, **_ops):
         self._create_routers()
         self._create_hosts()
         self._create_switches()
-        self.set_routing_tables()
+        # self.set_routing_tables()
 
 
 class NetworkDefinition:
@@ -360,7 +357,7 @@ class NetworkDefinition:
     def _dijkstra(self, source_router: RouterDefinition):
         # Dijkstra as seen on wikipedia https://en.wikipedia.org/wiki/Dijkstra's_algorithm
         router_to_dist: Dict[RouterDefinition, float] = {}
-        router_to_prev: Dict[RouterDefinition, Optional[RouterDefinition]] = {}
+        router_to_prev: Dict[RouterDefinition, Optional[Connection]] = {}
         Q: List[RouterDefinition] = [router for router in self._routers if router]
         for router in self._routers:
             router_to_dist[router] = math.inf
@@ -378,8 +375,24 @@ class NetworkDefinition:
                 v = conn.node1() if conn.node1() != u else conn.node2()
                 if alt < router_to_dist[v]:
                     router_to_dist[v] = alt
-                    router_to_prev[v] = u
+                    router_to_prev[v] = conn
         return router_to_dist, router_to_prev
+
+    def set_routing_tables(self, net):
+        router_to_paths = self._find_shortest_paths()
+        for router, paths in router_to_paths.items():
+            for r_i in router.interfaces():
+                i_address = r_i.full_address()
+                for other_router, prev in paths.router_to_prev.items():
+                    if prev is None:
+                        continue
+                    other_router_interface = prev.interface1() if prev.node1() == other_router else prev.interface2()
+                    interface = prev.interface1() if prev.node1() != other_router else prev.interface2()
+                    net[other_router.name()].cmd(f"ip route add {i_address} via {other_router_interface.full_address()}")
+            # router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
+            # router1.cmd('ip route add 10.0.3.0/24 via 10.1.3.3')
+            # router1.cmd('ip route add 10.0.4.0/24 via 10.1.2.2')
+            # router.cmd('ifconfig interface_name ip netmask mask
 
     def set_up_emulation(self):
         router_to_path: Dict[RouterDefinition, ShortestPath] = self._find_shortest_paths()
@@ -389,6 +402,7 @@ class NetworkDefinition:
                                    paths=router_to_path)
         net = Mininet(topo=topology, controller=None)
         net.start()
+        self.set_routing_tables(net)
         CLI(net)
         net.stop()
         return
@@ -452,9 +466,9 @@ def main():
     validate_definition_file(definition_file=definition_file)
     network_specification: dict = read_definition(definition_file=definition_file)
     network_definition: NetworkDefinition = NetworkDefinition(network_definition=network_specification)
-    network_definition.set_up_emulation()
     if should_draw:
         network_definition.output_graph_representation()
+    network_definition.set_up_emulation()
     return
 
 
