@@ -388,7 +388,7 @@ class NetworkDefinition:
                         continue
                     other_router_interface = prev.interface1() if prev.node1() == other_router else prev.interface2()
                     interface = prev.interface1() if prev.node1() != other_router else prev.interface2()
-                    net[other_router.name()].cmd(f"ip route add {i_address} via {other_router_interface.full_address()}")
+                    net[other_router.name()].cmd(f"ip route add {i_address} via {interface.full_address()}")
             # router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
             # router1.cmd('ip route add 10.0.3.0/24 via 10.1.3.3')
             # router1.cmd('ip route add 10.0.4.0/24 via 10.1.2.2')
