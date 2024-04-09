@@ -53,11 +53,11 @@ class BaseInterface:
 
 
 class RouterInterface(BaseInterface):
-    def __init__(self, name: str, address: str, mask: str, node, cost: int = 1):
+    def __init__(self, name: str, address: str, mask: str, node, cost: Optional[int]):
         super().__init__(name=name, address=address, mask=mask, node=node)
-        self._cost: int = cost
+        self._cost: Optional[int] = cost
 
-    def cost(self) -> int:
+    def cost(self) -> Optional[int]:
         return self._cost
 
 
@@ -93,7 +93,7 @@ class RouterDefinition:
         for interface_name, interface_description in router_def.items():
             address: str = interface_description.get('address')
             mask: str = interface_description.get('mask')
-            cost: int = interface_description.get('cost', 1)
+            cost: int = interface_description.get('cost', None)
             self._interfaces.append(RouterInterface(name=interface_name, address=address, mask=mask,
                                                     cost=cost, node=self))
         self._connections: List[Connection] = []
@@ -270,6 +270,7 @@ class NetworkDefinition:
         self._routers: List[RouterDefinition] = NetworkDefinition._get_routers_definition(definition=network_definition)
         self._hosts: List[HostDefinition] = NetworkDefinition._get_hosts_definition(definition=network_definition)
         self._switches: List[SwitchDefinition] = []
+        self._link_name_to_cost: Dict[str, int] = defaultdict(lambda: 1)
         self.create_switches()
         self._connect_components()
 
@@ -279,15 +280,18 @@ class NetworkDefinition:
         other_subnet = NetworkDefinition.get_subnet(other.ip_address(), other.mask())
         return subnet == other_subnet
 
-    @staticmethod
-    def _attempt_connecting_routers(router1: RouterDefinition, router2: RouterDefinition):
+    def _attempt_connecting_routers(self, router1: RouterDefinition, router2: RouterDefinition):
         for interface in router1.interfaces():
+            if interface.cost() is not None:
+                self._link_name_to_cost[interface.name()] = interface.cost()
             for other_interface in router2.interfaces():
+                if other_interface.cost() is not None:
+                    self._link_name_to_cost[other_interface.name()] = other_interface.cost()
                 NetworkDefinition._attempt_connecting_interfaces(node1=router1,
                                                                  node2=router2,
                                                                  interface1=interface,
                                                                  interface2=other_interface,
-                                                                 cost=interface.cost())
+                                                                 cost=self._link_name_to_cost[interface.name()])
         return
 
     @staticmethod
