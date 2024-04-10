@@ -256,7 +256,7 @@ class NetworkTopology(Topo):
 
     def _create_hosts(self):
         for host in self._hosts:
-            self.addHost(host.name(), ip=None)
+            self.addHost(host.name(), ip=host.interface().full_address())
 
     def build(self, **_ops):
         self._create_routers()
@@ -270,9 +270,19 @@ class NetworkDefinition:
         self._routers: List[RouterDefinition] = NetworkDefinition._get_routers_definition(definition=network_definition)
         self._hosts: List[HostDefinition] = NetworkDefinition._get_hosts_definition(definition=network_definition)
         self._switches: List[SwitchDefinition] = []
+        # TODO: FIX THIS
         self._link_name_to_cost: Dict[str, int] = defaultdict(lambda: 1)
+        self._find_link_costs()
         self.create_switches()
         self._connect_components()
+
+    def _find_link_costs(self):
+        ints = [i for router in self._routers for i in router.interfaces()]
+        for i in ints:
+            int_name = i.name()
+            if i.cost() is not None:
+                self._link_name_to_cost[int_name] = i.cost()
+        return
 
     @staticmethod
     def same_subnet(interface: BaseInterface, other: BaseInterface) -> bool:
@@ -282,11 +292,11 @@ class NetworkDefinition:
 
     def _attempt_connecting_routers(self, router1: RouterDefinition, router2: RouterDefinition):
         for interface in router1.interfaces():
-            if interface.cost() is not None:
-                self._link_name_to_cost[interface.name()] = interface.cost()
+            # if interface.cost() is not None:
+            #     self._link_name_to_cost[interface.name()] = interface.cost()
             for other_interface in router2.interfaces():
-                if other_interface.cost() is not None:
-                    self._link_name_to_cost[other_interface.name()] = other_interface.cost()
+                # if other_interface.cost() is not None:
+                #     self._link_name_to_cost[other_interface.name()] = other_interface.cost()
                 NetworkDefinition._attempt_connecting_interfaces(node1=router1,
                                                                  node2=router2,
                                                                  interface1=interface,
