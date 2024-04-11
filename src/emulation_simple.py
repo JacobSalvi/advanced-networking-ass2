@@ -1,4 +1,5 @@
 import argparse
+import math
 import dataclasses
 import ipaddress
 from collections import defaultdict
@@ -126,6 +127,54 @@ class NetworkDefinition:
                                                       link_name=link_name, node_name=routers_name)
                 self._subnet_to_nodes[subnet].append(node)
 
+    def _find_shortest_paths(self):
+        node_to_paths = {}
+        nodes = [n for v in self._subnet_to_nodes.values() for n in v]
+        for node in nodes:
+            node_to_dist, node_to_prev = self._dijkstra(source_node=node)
+            node_to_paths[node.node_name] = (node_to_dist, node_to_prev)
+        return node_to_paths
+
+    @staticmethod
+    def _find_vertex_with_smallest_distance(Q, router_to_dist):
+        dist_to_router = {dist: router for router, dist in router_to_dist.items() if router in Q}
+        min_dist = min(dist_to_router.keys())
+        return dist_to_router[min_dist]
+
+    def _find_neighbours(self, source_node_name: str):
+        neighbours = []
+        for subnet, nodes in self._subnet_to_nodes.items():
+            node_names = [n.node_name for n in nodes]
+            if source_node_name in node_names:
+                neighbours.extend([node for node in nodes if node.node_name != source_node_name])
+        return neighbours
+
+    def _dijkstra(self, source_node):
+        # Dijkstra as seen on wikipedia https://en.wikipedia.org/wiki/Dijkstra's_algorithm
+        node_to_dist: Dict[str, float] = {}
+        node_to_prev: Dict[str, Optional[NodeDefinition]] = {}
+        nodes = [n for v in self._subnet_to_nodes.values() for n in v]
+        Q = [n.node_name for n in nodes]
+        Q = list(set(Q))
+        for node in nodes:
+            node_to_dist[node.node_name] = math.inf
+            node_to_prev[node.node_name] = None
+        node_to_dist[source_node.node_name] = 0
+        while len(Q) > 0:
+            u = self._find_vertex_with_smallest_distance(Q, node_to_dist)
+            Q = [r for r in Q if r != u]
+
+            # find neighbours of u still in Q
+            neighbours = self._find_neighbours(u)
+            for conn in neighbours:
+                cost = self._subnet_to_cost[get_subnet(conn.address, conn.mask)]
+                alt = node_to_dist[u] + cost
+                v = conn.node_name
+                if alt < node_to_dist[v]:
+                    node_to_dist[v] = alt
+                    node_to_prev[v] = u
+        return node_to_dist, node_to_prev
+
     def output_graph(self):
         routers: List[NodeDefinition] = [n for v in self._subnet_to_nodes.values()
                                          for n in v if n.node_type == NodeType.ROUTER]
@@ -144,6 +193,7 @@ class NetworkDefinition:
         return
 
     def set_up_emulation(self):
+        shortest_paths = self._find_shortest_paths()
         topology: NetworkTopology = NetworkTopology(subnet_to_nodes=self._subnet_to_nodes,
                                                     subnet_to_cost=self._subnet_to_cost)
         net = Mininet(topo=topology, controller=None)
