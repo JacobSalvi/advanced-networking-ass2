@@ -95,7 +95,7 @@ class NetworkTopology(Topo):
             else:
                 # create switch  and connect everything to the switch
                 switch_name = f"switch-{self.switch_id}"
-                switch = self.addSwitch(f"switch-{self.switch_id}")
+                switch = self.addSwitch(f"switch{self.switch_id}")
                 self.switch_id += 1
                 for node in subnet_nodes:
                     intfname2 = f"{node.node_name}-{node.link_name}-{switch_name}"
