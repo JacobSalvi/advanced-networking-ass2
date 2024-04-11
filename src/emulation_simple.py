@@ -94,10 +94,13 @@ class NetworkTopology(Topo):
                              intfName2=intfname2, params2={"ip": f"{node_2.address}/{dotted_to_mask(node_2.mask)}"})
             else:
                 # create switch  and connect everything to the switch
+                switch_name = f"switch-{self.switch_id}"
                 switch = self.addSwitch(f"switch-{self.switch_id}")
                 self.switch_id += 1
                 for node in subnet_nodes:
-                    self.addLink(switch, node.node_name)
+                    intfname2 = f"{node.node_name}-{node.link_name}-{switch_name}"
+                    self.addLink(switch, node.node_name,
+                                 intfName2=intfname2, params2={"ip": f"{node.address}/{dotted_to_mask(node.mask)}"})
                 pass
         pass
 
