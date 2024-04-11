@@ -66,6 +66,7 @@ class NetworkTopology(Topo):
     def __init__(self, subnet_to_nodes, subnet_to_cost: Dict[str, int]):
         self._subnet_to_nodes = subnet_to_nodes
         self._subnet_to_cost = subnet_to_cost
+        self.switch_id: int = 0
         super().__init__()
 
     def build(self):
@@ -92,7 +93,8 @@ class NetworkTopology(Topo):
                              intfName2=intfname2, params2={"ip": f"{node_2.address}/{dotted_to_mask(node_2.mask)}"})
             else:
                 # create switch  and connect everything to the switch
-                switch = self.addSwitch(f"switch-{subnet}")
+                switch = self.addSwitch(f"switch-{self.switch_id}")
+                self.switch_id += 1
                 for node in subnet_nodes:
                     self.addLink(switch, node.node_name)
                 pass
