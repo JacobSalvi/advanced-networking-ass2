@@ -10,7 +10,7 @@ import yaml
 from mininet.cli import CLI
 from mininet.link import TCLink
 from mininet.net import Mininet
-from mininet.node import Node
+from mininet.node import Node, Switch, OVSBridge
 from mininet.topo import Topo
 
 
@@ -196,7 +196,7 @@ class NetworkDefinition:
         shortest_paths = self._find_shortest_paths()
         topology: NetworkTopology = NetworkTopology(subnet_to_nodes=self._subnet_to_nodes,
                                                     subnet_to_cost=self._subnet_to_cost)
-        net = Mininet(topo=topology, controller=None)
+        net = Mininet(topo=topology, controller=None, switch=OVSBridge)
         net.start()
         # set up routing tables
         CLI(net)
