@@ -78,6 +78,7 @@ class NetworkTopology(Topo):
 
         # create routers
         router_names = [n.node_name for n in nodes if n.node_type == NodeType.ROUTER]
+        router_names = list(set(router_names))
         for router_name in router_names:
             self.addNode(router_name, cls=LinuxRouter, ip=None)
 
