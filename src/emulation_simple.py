@@ -10,7 +10,7 @@ import yaml
 from mininet.cli import CLI
 from mininet.link import TCLink
 from mininet.net import Mininet
-from mininet.node import Node, Switch, OVSBridge
+from mininet.node import Node, OVSBridge
 from mininet.topo import Topo
 
 
@@ -114,7 +114,9 @@ class NetworkDefinition:
         self._subnet_to_nodes: Dict[str, List[NodeDefinition]] = defaultdict(list)
         self._subnet_to_cost: Dict[str, int] = defaultdict(lambda: 1)
         routers: dict = network_definition.get("routers")
+        hosts: dict = network_definition.get("hosts")
         self._load_routers(routers_def=routers)
+        self._load_hosts(hosts_def=hosts)
 
     def _load_routers(self, routers_def: dict):
         for routers_name, routers_def in routers_def.items():
@@ -129,6 +131,22 @@ class NetworkDefinition:
                                                       node_type=NodeType.ROUTER,
                                                       link_name=link_name, node_name=routers_name)
                 self._subnet_to_nodes[subnet].append(node)
+        return
+
+    def _load_hosts(self, hosts_def: dict):
+        for host_name, hosts_def in hosts_def:
+            for link_name, link_def in hosts_def.items():
+                address: str = link_def.get("address")
+                mask: str = link_def.get("mask")
+                subnet: str = get_subnet(address, mask)
+                cost = 1
+                if cost is not None:
+                    self._subnet_to_cost[subnet] = cost
+                node: NodeDefinition = NodeDefinition(address=address, mask=mask,
+                                                      node_type=NodeType.HOST,
+                                                      link_name=link_name, node_name=host_name)
+                self._subnet_to_nodes[subnet].append(node)
+        return
 
     def _find_shortest_paths(self):
         node_to_paths = {}
