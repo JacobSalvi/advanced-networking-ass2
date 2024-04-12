@@ -196,9 +196,23 @@ class NetworkDefinition:
         shortest_paths = self._find_shortest_paths()
         topology: NetworkTopology = NetworkTopology(subnet_to_nodes=self._subnet_to_nodes,
                                                     subnet_to_cost=self._subnet_to_cost)
+
+        # r2 ip route add 192.168.0.4/30 via 192.168.0.1
+        # r3 ip route add 192.168.0.0/30 via 192.168.0.5
+
+
+        # set up routing tables
+        for source_node, paths in shortest_paths.items():
+            #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
+            pass
+
         net = Mininet(topo=topology, controller=None, switch=OVSBridge)
         net.start()
-        # set up routing tables
+        r2 = net["r2"]
+        r3 = net["r3"]
+        r2.cmd("ip route add 192.168.0.4/30 via 192.168.0.1")
+        r3.cmd("ip route add 192.168.0.0/30 via 192.168.0.5")
+
         CLI(net)
         net.stop()
         return
