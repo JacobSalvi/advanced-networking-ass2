@@ -78,7 +78,10 @@ class NetworkTopology(Topo):
         nodes = [n for v in self._subnet_to_nodes.values() for n in v]
         hosts: List[NodeDefinition] = [n for n in nodes if n.node_type == NodeType.HOST]
         for host in hosts:
-            self.addHost(host.node_name, defaultRoute=f"via {host.address}")
+            host_subnet = get_subnet(host.address, host.mask)
+            subnet_nodes = self._subnet_to_nodes[host_subnet]
+            router = [n for n in nodes if n.node_type == NodeType.ROUTER][0]
+            self.addHost(host.node_name, defaultRoute=f"via {router.address}")
 
         # create routers
         router_names = [n.node_name for n in nodes if n.node_type == NodeType.ROUTER]
