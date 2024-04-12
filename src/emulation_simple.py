@@ -238,10 +238,8 @@ class NetworkDefinition:
 
         net = Mininet(topo=topology, controller=None, switch=OVSBridge)
         net.start()
-        r2 = net["r2"]
-        r3 = net["r3"]
 
-        node_names = [n.node_name for v in self._subnet_to_nodes.values() for n in v]
+        node_names = [n.node_name for v in self._subnet_to_nodes.values() for n in v if n.node_name != NodeType.HOST]
         node_names = list(set(node_names))
         # set up routing tables
         for source_node, paths in shortest_paths.items():
