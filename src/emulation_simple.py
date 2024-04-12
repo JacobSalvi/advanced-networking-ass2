@@ -134,7 +134,7 @@ class NetworkDefinition:
         return
 
     def _load_hosts(self, hosts_def: dict):
-        for host_name, hosts_def in hosts_def:
+        for host_name, hosts_def in hosts_def.items():
             for link_name, link_def in hosts_def.items():
                 address: str = link_def.get("address")
                 mask: str = link_def.get("mask")
