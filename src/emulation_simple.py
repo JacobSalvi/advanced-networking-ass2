@@ -52,6 +52,9 @@ class NodeDefinition:
     node_name: str
     node_type: NodeType
 
+    def complete_address(self):
+        return f"{get_subnet(self.address, self.mask)}/{dotted_to_mask(self.mask)}"
+
 
 class LinuxRouter(Node):
     def config(self, **params):
@@ -152,7 +155,7 @@ class NetworkDefinition:
     def _dijkstra(self, source_node):
         # Dijkstra as seen on wikipedia https://en.wikipedia.org/wiki/Dijkstra's_algorithm
         node_to_dist: Dict[str, float] = {}
-        node_to_prev: Dict[str, Optional[NodeDefinition]] = {}
+        node_to_prev: Dict[str, Optional[str]] = {}
         nodes = [n for v in self._subnet_to_nodes.values() for n in v]
         Q = [n.node_name for n in nodes]
         Q = list(set(Q))
@@ -192,6 +195,18 @@ class NetworkDefinition:
         print("}")
         return
 
+    def find_shortest_link_between(self, node_name1: str, node_name2: str) -> NodeDefinition:
+        common_subnets: list[str] = []
+        for subnet, nodes in self._subnet_to_nodes.items():
+            contained_nodes: list[str] = [n.node_name for n in nodes]
+            if node_name1 in contained_nodes and node_name2 in contained_nodes:
+                common_subnets.append(subnet)
+        cost_to_subnet = {cost: subnet for subnet, cost in self._subnet_to_cost.items() if subnet in common_subnets}
+        min_cost = min(cost_to_subnet.keys())
+        cheapest_subnet = cost_to_subnet[min_cost]
+        # If a node a multiple interfaces in the cheapest subnet I believe that taking any of them should suffice
+        return [n for n in self._subnet_to_nodes[cheapest_subnet] if n.node_name == node_name2][0]
+
     def set_up_emulation(self):
         shortest_paths = self._find_shortest_paths()
         topology: NetworkTopology = NetworkTopology(subnet_to_nodes=self._subnet_to_nodes,
@@ -200,18 +215,38 @@ class NetworkDefinition:
         # r2 ip route add 192.168.0.4/30 via 192.168.0.1
         # r3 ip route add 192.168.0.0/30 via 192.168.0.5
 
-
-        # set up routing tables
-        for source_node, paths in shortest_paths.items():
-            #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
-            pass
-
         net = Mininet(topo=topology, controller=None, switch=OVSBridge)
         net.start()
         r2 = net["r2"]
         r3 = net["r3"]
-        r2.cmd("ip route add 192.168.0.4/30 via 192.168.0.1")
-        r3.cmd("ip route add 192.168.0.0/30 via 192.168.0.5")
+
+        node_names = [n.node_name for v in self._subnet_to_nodes.values() for n in v]
+        node_names = list(set(node_names))
+        # set up routing tables
+        for source_node, paths in shortest_paths.items():
+            node_to_dist = paths[0]
+            node_to_prev = paths[1]
+            source_node_interfaces = [n for v in self._subnet_to_nodes.values() for n in v if
+                                      n.node_name == source_node]
+            for node_name in node_names:
+                if node_name == source_node:
+                    continue
+                prev = node_to_prev[node_name]
+                # prev and node are neighbours therefore they are both part of at least one subnet
+                link = self.find_shortest_link_between(node_name, prev)
+
+                for si in source_node_interfaces:
+                    complete_subnet_address = si.complete_address()
+                    print(f"{node_name} ip route add {complete_subnet_address} via {link.address}")
+                    net[node_name].cmd(f"ip route add {complete_subnet_address} via {link.address}")
+                pass
+            #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
+            pass
+        pass
+
+
+        # r2.cmd("ip route add 192.168.0.4/30 via 192.168.0.1")
+        # r3.cmd("ip route add 192.168.0.0/30 via 192.168.0.5")
 
         CLI(net)
         net.stop()
