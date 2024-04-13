@@ -257,8 +257,8 @@ class NetworkDefinition:
 
                 for si in source_node_interfaces:
                     complete_subnet_address = si.complete_address()
-                    routing_table_entry = f"{node_name} ip route add {si.address} via {link.address}"
-                    print(routing_table_entry)
+                    routing_table_entry = f"ip route add {si.address} via {link.address}"
+                    print(f"{node_name}: {routing_table_entry}")
                     net[node_name].cmd(routing_table_entry)
                 pass
             #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
