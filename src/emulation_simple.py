@@ -267,6 +267,21 @@ class NetworkDefinition:
             pass
         pass
 
+        nodes = [n for v in self._subnet_to_nodes.values() for n in v]
+        hosts: List[NodeDefinition] = [n for n in nodes if n.node_type == NodeType.HOST]
+        for host in hosts:
+            host_subnet = get_subnet(host.address, host.mask)
+            subnet_nodes = self._subnet_to_nodes[host_subnet]
+            router = [n for n in subnet_nodes if n.node_type == NodeType.ROUTER][0]
+            for host2 in hosts:
+                if host.node_name == host2.node_name:
+                    continue
+                host2_subnet = get_subnet(host2.address, host2.mask)
+                if host2_subnet == host_subnet:
+                    continue
+                net[host.node_name].cmd(f"ip route add {host2.address} via {router.address}")
+
+
         # r2 = net["r2"]
         # r3 = net["r3"]
         # r2.cmd("ip route add 10.0.3.0/24 via 192.168.1.3")
