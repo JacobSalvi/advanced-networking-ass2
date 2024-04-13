@@ -243,26 +243,26 @@ class NetworkDefinition:
         node_names = [n.node_name for v in self._subnet_to_nodes.values() for n in v if n.node_type != NodeType.HOST]
         node_names = list(set(node_names))
         # set up routing tables
-        # for source_node, paths in shortest_paths.items():
-        #     node_to_dist = paths[0]
-        #     node_to_prev = paths[1]
-        #     source_node_interfaces = [n for v in self._subnet_to_nodes.values() for n in v if
-        #                               n.node_name == source_node]
-        #     for node_name in node_names:
-        #         if node_name == source_node:
-        #             continue
-        #         prev = node_to_prev[node_name]
-        #         # prev and node are neighbours therefore they are both part of at least one subnet
-        #         link = self.find_shortest_link_between(node_name, prev)
-        #
-        #         for si in source_node_interfaces:
-        #             complete_subnet_address = si.complete_address()
-        #             print(f"{node_name} ip route add {complete_subnet_address} via {link.address}")
-        #             net[node_name].cmd(f"ip route add {complete_subnet_address} via {link.address}")
-        #         pass
-        #     #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
-        #     pass
-        # pass
+        for source_node, paths in shortest_paths.items():
+            node_to_dist = paths[0]
+            node_to_prev = paths[1]
+            source_node_interfaces = [n for v in self._subnet_to_nodes.values() for n in v if
+                                      n.node_name == source_node]
+            for node_name in node_names:
+                if node_name == source_node:
+                    continue
+                prev = node_to_prev[node_name]
+                # prev and node are neighbours therefore they are both part of at least one subnet
+                link = self.find_shortest_link_between(node_name, prev)
+
+                for si in source_node_interfaces:
+                    complete_subnet_address = si.complete_address()
+                    print(f"{node_name} ip route add {si.address} via {link.address}")
+                    # net[node_name].cmd(f"ip route add {complete_subnet_address} via {link.address}")
+                pass
+            #  router1.cmd('ip route add 10.0.2.0/24 via 10.1.2.2')
+            pass
+        pass
 
         r2 = net["r2"]
         r3 = net["r3"]
