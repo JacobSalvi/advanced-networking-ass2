@@ -244,8 +244,8 @@ class NetworkDefinition:
         node_names = list(set(node_names))
         # set up routing tables
         for source_node, paths in shortest_paths.items():
-            if source_node.startswith("h"):
-                continue
+            # if source_node.startswith("h"):
+            #     continue
             node_to_dist = paths[0]
             node_to_prev = paths[1]
             source_node_interfaces = [n for v in self._subnet_to_nodes.values() for n in v if
