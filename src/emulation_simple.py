@@ -265,10 +265,10 @@ class NetworkDefinition:
             pass
         pass
 
-        r2 = net["r2"]
-        r3 = net["r3"]
-        r2.cmd("ip route add 10.0.3.0/24 via 192.168.1.3")
-        r3.cmd("ip route add 10.0.2.0/24 via 192.168.1.2")
+        # r2 = net["r2"]
+        # r3 = net["r3"]
+        # r2.cmd("ip route add 10.0.3.0/24 via 192.168.1.3")
+        # r3.cmd("ip route add 10.0.2.0/24 via 192.168.1.2")
 
 
         # r2.cmd("ip route add 192.168.0.4/30 via 192.168.0.1")
