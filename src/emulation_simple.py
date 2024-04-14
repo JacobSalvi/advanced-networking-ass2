@@ -34,6 +34,14 @@ def get_subnet(address: str, mask: str) -> str:
     return str(network.network_address)
 
 
+# def get_subnet(ip: str, mask: str) -> str:
+#     split_ip = ip.split(".")
+#     split_mask = mask.split(".")
+#     for i in range(len(split_mask)):
+#         split_ip[i] = str(int(split_ip[i]) & int(split_mask[i]))
+#     return ".".join(split_ip)
+
+
 def dotted_to_mask(mask_dotted: str) -> int:
     split_mask = [bin(int(el)) for el in mask_dotted.split('.')]
     return sum(el.count('1') for el in split_mask)
@@ -209,10 +217,11 @@ class NetworkDefinition:
             print(f"    {router_name} [shape=circle];")
         for subnet, nodes in self._subnet_to_nodes.items():
             cost: int = self._subnet_to_cost[subnet]
-            for i in range(len(nodes)):
-                for j in range(i+1, len(nodes)):
+            routers: List[NodeDefinition] = [n for n in nodes if n.node_type == NodeType.ROUTER]
+            for i in range(len(routers)):
+                for j in range(i+1, len(routers)):
 
-                    print(f'    {nodes[i].node_name} -- {nodes[j].node_name} [label="{cost}"];')
+                    print(f'    {routers[i].node_name} -- {routers[j].node_name} [label="{cost}"];')
         print("}")
         return
 
@@ -225,7 +234,7 @@ class NetworkDefinition:
         cost_to_subnet = {cost: subnet for subnet, cost in self._subnet_to_cost.items() if subnet in common_subnets}
         min_cost = min(cost_to_subnet.keys())
         cheapest_subnet = cost_to_subnet[min_cost]
-        # If a node a multiple interfaces in the cheapest subnet I believe that taking any of them should suffice
+        # If a node has multiple interfaces in the cheapest subnet I believe that taking any of them should suffice
         return [n for n in self._subnet_to_nodes[cheapest_subnet] if n.node_name == node_name2][0]
 
     def set_up_emulation(self):
@@ -267,6 +276,8 @@ class NetworkDefinition:
             pass
         pass
 
+        # for reasons beyond my understanding the hosts need to be told how to find other hosts explicitly even
+        # if they have a default route.
         nodes = [n for v in self._subnet_to_nodes.values() for n in v]
         hosts: List[NodeDefinition] = [n for n in nodes if n.node_type == NodeType.HOST]
         for host in hosts:
@@ -315,4 +326,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # Author: Jacob Salvi
+    # I thank the teaching assistant, Pasquale Polverino, for the help given during this assignment.
     main()
